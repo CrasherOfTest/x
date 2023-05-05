@@ -7,6 +7,7 @@
 #include "GameFramework/Pawn.h"
 #include "Components/BoxComponent.h"
 #include "Components/TimelineComponent.h"
+//#include "Components/LineTraceComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "MyElevator.generated.h"
@@ -22,7 +23,10 @@ public:
 	float CurveTime;
 	UFUNCTION()
 		void TimelineProgress(float Value);
+	UFUNCTION()
+		void TimelineProgress_B(float Value);
 	FTimeline CurveTimeline;
+	FTimeline CurveTimeline_B;
 
 	UPROPERTY(EditAnywhere, Category = "Root")
 		USceneComponent* Root;
@@ -32,24 +36,21 @@ public:
 	//Doors' mesh
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Meshes")
 		UStaticMeshComponent* LDoor;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DoorColl")
-		UBoxComponent* L_Coll;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Meshes")
 		UStaticMeshComponent* RDoor;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DoorColl")
-		UBoxComponent* R_Coll;
 	//Collison for trigering with dors and with up and down of mesh
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Collisions")
 		class UBoxComponent* Trig;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Collisions")
 		class UBoxComponent* Base_Trig;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Collisions")
-		class UBoxComponent* TrigUp;
-
+	/*UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Collisions")
+		class UBoxComponent* TrigUp;*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Floors")
+		UStaticMeshComponent* FirstFloor;
 	UPROPERTY(EditAnywhere)
 		UCurveFloat* CurveFloat;
 	UPROPERTY(EditAnywhere)
-		UCurveFloat* OpenCurve;
+		UCurveFloat* UPDownCurve;
 	UPROPERTY(EditAnywhere)
 		UCurveFloat* CloseCurve;
 
@@ -57,9 +58,12 @@ public:
 		FRotator StartLoc;
 	UPROPERTY()
 		FRotator EndLoc;
-	UPROPERTY(Editanywhere, Category = "Timeline")
+	UPROPERTY()
+		FVector StartLoc_B;
+	UPROPERTY()
+		FVector EndLoc_B;
+	UPROPERTY(EditAnywhere, Category = "Timeline")
 		float YOffset;
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -73,12 +77,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	UFUNCTION()
 		void OnOverlapBegin(UPrimitiveComponent* OnOverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
 	UFUNCTION()
 		void OnOverlapEnd(UPrimitiveComponent* OnOverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	UFUNCTION(BlueprintCallable)
-		void StartOpening();
+	
+	UFUNCTION(BlueprintCallable, Category = "UpDownFunctions")
+		void FloorUp();
 	bool bIsOpen;
 	bool bIsClose;
 };

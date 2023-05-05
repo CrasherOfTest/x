@@ -17,13 +17,9 @@ AMyElevator::AMyElevator()
 	Base->SetupAttachment(Root);
 	LDoor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LDoor"));
 	LDoor->SetupAttachment(Base);
-	L_Coll = CreateDefaultSubobject<UBoxComponent>(TEXT("L_Coll"));
-	L_Coll->SetupAttachment(LDoor);
 	RDoor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RDoor"));
 	RDoor->SetupAttachment(Base);
-	R_Coll = CreateDefaultSubobject<UBoxComponent>(TEXT("R_Coll"));
-	R_Coll->SetupAttachment(RDoor);
-
+	//Trigers for door
 	Trig = CreateDefaultSubobject<UBoxComponent>(TEXT("Trig"));
 	Trig->SetupAttachment(Root);
 	Trig->SetVisibility(true);
@@ -31,12 +27,14 @@ AMyElevator::AMyElevator()
 	Base_Trig = CreateDefaultSubobject<UBoxComponent>(TEXT("Base_Trig"));
 	Base_Trig->SetupAttachment(Base);
 	Base_Trig->SetVisibility(true);
-
-	TrigUp = CreateDefaultSubobject<UBoxComponent>(TEXT("TrigUp"));
+	//Floor StaticMeshes
+	FirstFloor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FirstFloor"));
+	FirstFloor->SetupAttachment(Base);
+	/*TrigUp = CreateDefaultSubobject<UBoxComponent>(TEXT("TrigUp"));
 	TrigUp->SetupAttachment(Base);
-	TrigUp->SetVisibility(true);
+	TrigUp->SetVisibility(true);*/
 
-	OpenCurve = CreateDefaultSubobject<UCurveFloat>("OpenCurve");
+	UPDownCurve = CreateDefaultSubobject<UCurveFloat>("OpenCurve");
 	CloseCurve = CreateDefaultSubobject<UCurveFloat>("CloseCurve");
 	bIsOpen = false;
 	bIsClose = false;
@@ -48,13 +46,18 @@ void AMyElevator::TimelineProgress(float Value)
 	LDoor->SetRelativeRotation(-1 * NewLocation);
 	RDoor->SetRelativeRotation(NewLocation);
 }
+void AMyElevator::TimelineProgress_B(float Value)
+{
+	FVector NewLocation = FMath::Lerp(StartLoc_B, EndLoc_B, Value);
+	Base->SetRelativeLocation(NewLocation);
+}
 
 // Called when the game starts or when spawned
 void AMyElevator::BeginPlay()
 {
 	Super::BeginPlay();
 	Trig->OnComponentBeginOverlap.AddDynamic(this, &AMyElevator::OnOverlapBegin);
-	TrigUp->OnComponentBeginOverlap.AddDynamic(this, &AMyElevator::OnOverlapBegin);
+	//TrigUp->OnComponentBeginOverlap.AddDynamic(this, &AMyElevator::OnOverlapBegin);
 }
 
 void AMyElevator::OnOverlapBegin(UPrimitiveComponent* OnOverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -63,7 +66,7 @@ void AMyElevator::OnOverlapBegin(UPrimitiveComponent* OnOverlappedComponent, AAc
 	ACharacter* Character = Cast<ACharacter>(OtherActor);
 	//UE_LOG(LogTemp, Warning, TEXT("%s"), *OtherActor->GetClass()->GetName());
 	if (LDoor->GetRelativeRotation() == FRotator(0.f, 0.f, 0.f))bIsOpen = false;
-	if (Character && CurveFloat && OtherActor->GetClass()->GetName() == "BP_ThirdPersonCharacter_C" && !bIsOpen)
+	if (Base_Trig->GetRelativeLocation() == Trig->GetRelativeLocation() && Character && CurveFloat && OtherActor->GetClass()->GetName() == "BP_ThirdPersonCharacter_C" && !bIsOpen && OnOverlappedComponent->GetName() == "Trig")
 	{
 		bIsOpen = true;
 		FOnTimelineFloat TimelineProgress;
@@ -84,17 +87,31 @@ void AMyElevator::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	CurveTimeline.TickTimeline(DeltaTime);
-	
+	CurveTimeline_B.TickTimeline(DeltaTime);
 }
 
-void AMyElevator::StartOpening()
+void AMyElevator::FloorUp()
 {
-	//CurveTime = 0.0f;
+
+	FOnTimelineFloat TimelineProgress_B;
+	TimelineProgress_B.BindUFunction(this, FName("TimelineProgress_B"));
+
+	CurveTimeline_B.AddInterpFloat(UPDownCurve, TimelineProgress_B);
+	//CurveTimeline.SetLooping(true);
+	CurveTimeline_B.Play();
+	StartLoc_B = EndLoc_B = Base->GetRelativeLocation();
+	EndLoc_B.Z += YOffset;
+	CurveTimeline_B.SetNewTime(0.f);
+	CurveTimeline_B.PlayFromStart();
+	UE_LOG(LogTemp, Warning, TEXT("asdfasd"));
 }
 
 void AMyElevator::OnOverlapEnd(UPrimitiveComponent* OnOverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	//End of overlaping
 }
+
+
 
 // Called to bind functionality to input
 void AMyElevator::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
